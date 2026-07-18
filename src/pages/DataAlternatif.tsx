@@ -171,6 +171,7 @@ export default function DataAlternatif() {
               <th className="px-4 py-2 text-left">Kode</th>
               <th className="px-4 py-2 text-left">Nama Pengeluaran</th>
               <th className="px-4 py-2 text-left">Kategori</th>
+              <th className="px-4 py-2 text-left">Deskripsi</th>
               <th className="px-4 py-2 text-right">Estimasi Biaya</th>
               <th className="px-4 py-2 text-center">Aksi</th>
             </tr>
@@ -181,6 +182,9 @@ export default function DataAlternatif() {
                 <td className="px-4 py-2">{a.kode_alternatif}</td>
                 <td className="px-4 py-2">{a.nama_pengeluaran}</td>
                 <td className="px-4 py-2">{a.kategori || "-"}</td>
+                <td className="max-w-xs px-4 py-2 text-slate-600 dark:text-slate-300">
+                  {a.deskripsi || "-"}
+                </td>
                 <td className="px-4 py-2 text-right">{formatRupiah(a.estimasi_biaya)}</td>
                 <td className="space-x-2 px-4 py-2 text-center">
                   <button onClick={() => handleEdit(a)} className="text-blue-600 hover:underline">
@@ -194,7 +198,7 @@ export default function DataAlternatif() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                   Belum ada data alternatif.
                 </td>
               </tr>
