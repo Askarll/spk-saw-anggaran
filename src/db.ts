@@ -16,6 +16,17 @@ const KEY = {
   hasil: "spk_hasil",
 };
 
+const DEVICE_KEY = "spk_device_id";
+
+function getDeviceId(): string {
+  if (typeof window === "undefined") return "default";
+  const existing = window.localStorage.getItem(DEVICE_KEY);
+  if (existing) return existing;
+  const generated = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  window.localStorage.setItem(DEVICE_KEY, generated);
+  return generated;
+}
+
 export interface HasilTersimpan extends HasilSAW {
   tanggal_hitung: string;
 }
@@ -58,10 +69,12 @@ export const db = {
   // Implementation switches to Supabase when configured, otherwise uses localStorage.
   // ----- Kriteria -----
   async getKriteria(): Promise<Kriteria[]> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase
         .from("kriteria")
-        .select("id, kode_kriteria, nama_kriteria, bobot, atribut")
+        .select("id, kode_kriteria, nama_kriteria, bobot, atribut, device_id")
+        .eq("device_id", deviceId)
         .order("kode_kriteria", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Kriteria[];
@@ -71,8 +84,9 @@ export const db = {
     );
   },
   async addKriteria(data: Omit<Kriteria, "id">): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("kriteria").insert([data]);
+      await supabase.from("kriteria").insert([{ ...data, device_id: deviceId }]);
       return;
     }
     const list = read<Kriteria[]>(KEY.kriteria, []);
@@ -80,8 +94,9 @@ export const db = {
     write(KEY.kriteria, list);
   },
   async updateKriteria(id: string, data: Omit<Kriteria, "id">): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("kriteria").update(data).eq("id", id);
+      await supabase.from("kriteria").update({ ...data, device_id: deviceId }).eq("id", id).eq("device_id", deviceId);
       return;
     }
     const list = read<Kriteria[]>(KEY.kriteria, []).map((k) =>
@@ -90,9 +105,10 @@ export const db = {
     write(KEY.kriteria, list);
   },
   async deleteKriteria(id: string): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("kriteria").delete().eq("id", id);
-      await supabase.from("penilaian").delete().eq("kriteria_id", id);
+      await supabase.from("kriteria").delete().eq("id", id).eq("device_id", deviceId);
+      await supabase.from("penilaian").delete().eq("kriteria_id", id).eq("device_id", deviceId);
       return;
     }
     write(
@@ -108,10 +124,12 @@ export const db = {
 
   // ----- Alternatif -----
   async getAlternatif(): Promise<Alternatif[]> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase
         .from("alternatif")
-        .select("id, kode_alternatif, nama_pengeluaran, kategori, estimasi_biaya, deskripsi")
+        .select("id, kode_alternatif, nama_pengeluaran, kategori, estimasi_biaya, deskripsi, device_id")
+        .eq("device_id", deviceId)
         .order("kode_alternatif", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Alternatif[];
@@ -121,8 +139,9 @@ export const db = {
     );
   },
   async addAlternatif(data: Omit<Alternatif, "id">): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("alternatif").insert([data]);
+      await supabase.from("alternatif").insert([{ ...data, device_id: deviceId }]);
       return;
     }
     const list = read<Alternatif[]>(KEY.alternatif, []);
@@ -130,8 +149,9 @@ export const db = {
     write(KEY.alternatif, list);
   },
   async updateAlternatif(id: string, data: Omit<Alternatif, "id">): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("alternatif").update(data).eq("id", id);
+      await supabase.from("alternatif").update({ ...data, device_id: deviceId }).eq("id", id).eq("device_id", deviceId);
       return;
     }
     const list = read<Alternatif[]>(KEY.alternatif, []).map((a) =>
@@ -140,9 +160,10 @@ export const db = {
     write(KEY.alternatif, list);
   },
   async deleteAlternatif(id: string): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("alternatif").delete().eq("id", id);
-      await supabase.from("penilaian").delete().eq("alternatif_id", id);
+      await supabase.from("alternatif").delete().eq("id", id).eq("device_id", deviceId);
+      await supabase.from("penilaian").delete().eq("alternatif_id", id).eq("device_id", deviceId);
       return;
     }
     write(
@@ -157,24 +178,28 @@ export const db = {
 
   // ----- Penilaian -----
   async getPenilaian(): Promise<Penilaian[]> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from("penilaian").select("alternatif_id, kriteria_id, nilai");
+      const { data, error } = await supabase
+        .from("penilaian")
+        .select("alternatif_id, kriteria_id, nilai, device_id")
+        .eq("device_id", deviceId);
       if (error) throw error;
       return (data ?? []) as Penilaian[];
     }
     return read<Penilaian[]>(KEY.penilaian, []);
   },
   async savePenilaian(rows: Penilaian[]): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      // Use upsert to insert or update penilaian by unique (alternatif_id,kriteria_id)
       try {
         if (rows.length === 0) {
-          // nothing to do
           return;
         }
+        const rowsWithDevice = rows.map((row) => ({ ...row, device_id: deviceId }));
         const { data, error } = await supabase
           .from("penilaian")
-          .upsert(rows, { onConflict: "alternatif_id,kriteria_id" })
+          .upsert(rowsWithDevice, { onConflict: "alternatif_id,kriteria_id,device_id" })
           .select();
         if (error) {
           console.error("Supabase upsert penilaian error:", error);
@@ -191,10 +216,12 @@ export const db = {
 
   // ----- Hasil perhitungan -----
   async getHasil(): Promise<HasilTersimpan[]> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase
         .from("hasil_perhitungan")
         .select("*")
+        .eq("device_id", deviceId)
         .order("tanggal_hitung", { ascending: false });
       if (error) throw error;
       return (data ?? []) as HasilTersimpan[];
@@ -203,8 +230,9 @@ export const db = {
   },
   async saveHasil(hasil: HasilSAW[]): Promise<void> {
     const tanggal = new Date().toISOString();
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      const rows = hasil.map((h) => ({ ...h, tanggal_hitung: tanggal }));
+      const rows = hasil.map((h) => ({ ...h, tanggal_hitung: tanggal, device_id: deviceId }));
       const { data, error } = await supabase.from("hasil_perhitungan").insert(rows).select();
       if (error) {
         console.error("Supabase saveHasil error:", error);
@@ -218,9 +246,9 @@ export const db = {
     );
   },
   async clearHasil(): Promise<void> {
+    const deviceId = getDeviceId();
     if (isSupabaseConfigured && supabase) {
-      // fetch ids then delete by ids to avoid DELETE without WHERE errors
-      const { data: rows, error: selErr } = await supabase.from('hasil_perhitungan').select('id');
+      const { data: rows, error: selErr } = await supabase.from('hasil_perhitungan').select('id').eq('device_id', deviceId);
       if (selErr) {
         console.error('Supabase select hasil_perhitungan error:', selErr);
         throw selErr;

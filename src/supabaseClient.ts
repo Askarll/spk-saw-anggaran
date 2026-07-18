@@ -8,11 +8,24 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+function hasValidHttpUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  const trimmed = value.trim();
+  return /^https?:\/\/[^\s]+$/i.test(trimmed);
+}
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+
+export const isSupabaseConfigured = hasValidHttpUrl(supabaseUrl) && Boolean(supabaseAnonKey);
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
+  ? (() => {
+      try {
+        return createClient(supabaseUrl as string, supabaseAnonKey as string);
+      } catch (error) {
+        console.warn("Supabase config tidak valid, memakai mode offline.", error);
+        return null;
+      }
+    })()
   : null;

@@ -9,34 +9,40 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create tables if they do not exist (idempotent)
 CREATE TABLE IF NOT EXISTS kriteria (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    kode_kriteria   VARCHAR(10) NOT NULL UNIQUE,
+    device_id       TEXT NOT NULL DEFAULT 'default',
+    kode_kriteria   VARCHAR(10) NOT NULL,
     nama_kriteria   VARCHAR(100) NOT NULL,
     bobot           DECIMAL(5,4) NOT NULL CHECK (bobot >= 0 AND bobot <= 1),
     atribut         VARCHAR(10) NOT NULL CHECK (atribut IN ('benefit','cost')),
-    created_at      TIMESTAMPTZ DEFAULT now()
+    created_at      TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (device_id, kode_kriteria)
 );
 
 CREATE TABLE IF NOT EXISTS alternatif (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    kode_alternatif  VARCHAR(10) NOT NULL UNIQUE,
+    device_id        TEXT NOT NULL DEFAULT 'default',
+    kode_alternatif  VARCHAR(10) NOT NULL,
     nama_pengeluaran VARCHAR(150) NOT NULL,
     kategori         VARCHAR(50),
     estimasi_biaya   DECIMAL(15,2) DEFAULT 0,
     deskripsi        TEXT,
-    created_at       TIMESTAMPTZ DEFAULT now()
+    created_at       TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (device_id, kode_alternatif)
 );
 
 CREATE TABLE IF NOT EXISTS penilaian (
     id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    device_id      TEXT NOT NULL DEFAULT 'default',
     alternatif_id  UUID NOT NULL REFERENCES alternatif(id) ON DELETE CASCADE,
     kriteria_id    UUID NOT NULL REFERENCES kriteria(id) ON DELETE CASCADE,
     nilai          DECIMAL(15,4) NOT NULL DEFAULT 0,
     created_at     TIMESTAMPTZ DEFAULT now(),
-    UNIQUE (alternatif_id, kriteria_id)
+    UNIQUE (device_id, alternatif_id, kriteria_id)
 );
 
 CREATE TABLE IF NOT EXISTS hasil_perhitungan (
     id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    device_id          TEXT NOT NULL DEFAULT 'default',
     alternatif_id      UUID NOT NULL REFERENCES alternatif(id) ON DELETE CASCADE,
     kode_alternatif    VARCHAR(10),
     nama_pengeluaran   VARCHAR(150),
@@ -48,6 +54,10 @@ CREATE TABLE IF NOT EXISTS hasil_perhitungan (
 );
 
 -- Ensure any missing columns on existing table are added (safe)
+ALTER TABLE IF EXISTS kriteria ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE IF EXISTS alternatif ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE IF EXISTS penilaian ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE IF EXISTS hasil_perhitungan ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT 'default';
 ALTER TABLE IF EXISTS hasil_perhitungan ADD COLUMN IF NOT EXISTS kode_alternatif VARCHAR(10);
 ALTER TABLE IF EXISTS hasil_perhitungan ADD COLUMN IF NOT EXISTS nama_pengeluaran VARCHAR(150);
 ALTER TABLE IF EXISTS hasil_perhitungan ADD COLUMN IF NOT EXISTS persentase NUMERIC(6,2) DEFAULT 0;
