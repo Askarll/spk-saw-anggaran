@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/layout.tsx","./src/db.ts","./src/export-pdf.ts","./src/main.tsx","./src/saw-engine.ts","./src/supabaseclient.ts","./src/vite-env.d.ts","./src/pages/dashboard.tsx","./src/pages/dataalternatif.tsx","./src/pages/datakriteria.tsx","./src/pages/inputpenilaian.tsx","./src/pages/perhitungansaw.tsx","./src/pages/riwayat.tsx"],"version":"5.9.3"}
